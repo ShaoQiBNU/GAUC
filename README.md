@@ -58,7 +58,7 @@ $$ AUC(非二分类) = \frac { N_{c}}{ N_{0}}  \in [0, 1] $$
 
 ### 代码
 
-> 普通AUC计算直接调用sklearn的roc_auc_score，非二分类的AUC计算涉及到两个列表中相对顺序保持一致的元素对数量，即列表里逆序对的数量统计，可采用归并排序或者二分查找的方法，具体参考：
+> 普通AUC计算直接调用sklearn的roc_auc_score，非二分类的AUC计算涉及到两个列表中相对顺序保持一致的元素对数量，即列表里逆序对的数量统计，可采用归并排序或者二分查找的方法，具体参考：https://github.com/ShaoQiBNU/GAUC/blob/main/gauc.ipynb
 
-> 工业界用python的dataframe计算效率较低，常采用pyspark进行提速计算，具体参考：
+> 工业界用python的dataframe计算效率较低，常采用pyspark进行提速计算，具体参考：https://github.com/ShaoQiBNU/GAUC/blob/main/gauc_pyspark.py
 
