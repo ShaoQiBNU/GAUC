@@ -61,3 +61,76 @@ $$ AUC(非二分类) = \frac { N_{c}}{ N_{0}}  \in [0, 1] $$
 
 > 工业界用python的dataframe计算效率较低，常采用pyspark进行提速计算，具体参考：https://github.com/ShaoQiBNU/GAUC/blob/main/gauc_pyspark.py
 
+> SQL计算具体参考：
+
+```SQL
+with
+raw_data as 
+(
+    select  user_id
+            ,req_time
+            ,pos
+            ,grass_date
+            ,abtest
+            ,watch_duration
+            ,fine_sort_score
+            ,rough_sort_score
+            ,final_rerank_score
+            ,rough_staytime_score
+            ,cast(element_at(extra_map, 'staytime') as double) as fine_staytime_score
+            ,sum(1) over (partition by grass_date, abtest, user_id) as vv_per_user
+    from    table_name
+    where   grass_date between '2022-12-01'
+      and   '2022-12-04'
+      and   abtest in ('21153', '21154', '21155', '21156')
+      and   video_duration > 0
+      and   fine_sort_score > 0
+      and   rough_sort_score > 0
+)
+select  d.grass_date
+        ,d.abtest
+        ,1.00000 * sum(d.totalcnt * d.rough_score_watch_auc) / sum(d.totalcnt) as rough_score_uauc
+        ,1.00000 * sum(d.totalcnt * d.fine_score_watch_auc) / sum(d.totalcnt) as fine_score_uauc
+        ,1.00000 * sum(d.totalcnt * d.rerank_score_watch_auc) / sum(d.totalcnt) as rerank_score_uauc
+        ,1.00000 * sum(d.totalcnt * d.rough_staytime_watch_auc) / sum(d.totalcnt) as rough_stay_time_score_uauc
+        ,1.00000 * sum(d.totalcnt * d.fine_staytime_watch_auc) / sum(d.totalcnt) as fine_staytime_score_uauc
+from    (
+    select  c.grass_date
+            ,c.abtest
+            ,c.user_id
+            ,1.00000 * sum(if(rough_sort_score_a >= rough_sort_score_b, 1, 0)) / count(*) as rough_score_watch_auc
+            ,1.00000 * sum(if(fine_sort_score_a >= fine_sort_score_b, 1, 0)) / count(*) as fine_score_watch_auc
+            ,1.00000 * sum(if(rerank_score_a >= rerank_score_b, 1, 0)) / count(*) as rerank_score_watch_auc
+            ,1.00000 * sum(if(rough_staytime_score_a >= rough_staytime_score_b, 1, 0)) / count(*) as rough_staytime_watch_auc
+            ,1.00000 * sum(if(fine_staytime_score_a >= fine_staytime_score_b, 1, 0)) / count(*) as fine_staytime_watch_auc
+            ,max(vv_per_user) as totalcnt
+    from    (
+        select  a.abtest
+                ,a.grass_date
+                ,a.user_id
+                ,a.watch_duration as watch_a
+                ,b.watch_duration as watch_b
+                ,a.rough_sort_score as rough_sort_score_a
+                ,b.rough_sort_score as rough_sort_score_b
+                ,a.fine_sort_score as fine_sort_score_a
+                ,b.fine_sort_score as fine_sort_score_b
+                ,a.rough_staytime_score as rough_staytime_score_a
+                ,b.rough_staytime_score as rough_staytime_score_b
+                ,a.final_rerank_score as rerank_score_a
+                ,b.final_rerank_score as rerank_score_b
+                ,a.fine_staytime_score as fine_staytime_score_a
+                ,b.fine_staytime_score as fine_staytime_score_b
+                ,a.vv_per_user
+        from    raw_data a
+        join    raw_data b
+        on      a.abtest = b.abtest
+          and   a.grass_date = b.grass_date
+          and   a.user_id = b.user_id
+          and   a.watch_duration > b.watch_duration
+    ) c
+    group by c.abtest, c.grass_date, c.user_id
+) d
+group by d.abtest, d.grass_date
+order by d.grass_date, d.abtest
+```
+
