@@ -80,12 +80,29 @@ def read_dataset(path):
     :param path: hdfs path
     :return: dataframe: feature label
     """
+    
+    # json格式数据读取
     spark = SparkSession.builder \
         .appName("Python Spark SQL basic example") \
         .config("spark.some.config.option", "some-value") \
         .getOrCreate()
 
     df = spark.read.json(path)
+    
+    
+    '''
+    # hive sql读取
+    spark_session = SparkSession.builder\
+            .enableHiveSupport()\
+            .config("hive.exec.dynamic.partition", "true")\
+            .config("hive.exec.dynamic.partition.mode", "nonstrict")\
+            .getOrCreate()
+    df = []
+    try:
+        df = spark_session.sql(sql)
+    except Exception as e:
+        print('exec sql on spark failed: sql={}, exception={}'.format(sql, str(e)))
+    '''
     df = df.fillna(0)
 
     print("*" * 200)
